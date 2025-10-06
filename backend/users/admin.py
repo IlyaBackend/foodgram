@@ -68,7 +68,7 @@ class RecipesAdmin(admin.ModelAdmin):
         """Выводит общее число добавлений этого рецепта в избранное."""
         return obj.fav_count
 
-    favorites_count.short_description = 'Число добавлений в избранное'
+    favorites_count.short_description = 'Число добавлений в избранное.'
     favorites_count.admin_order_field = 'fav_count'
 
 

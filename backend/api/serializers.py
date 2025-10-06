@@ -4,19 +4,20 @@ import uuid
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.files.base import ContentFile
-from django.db.models import Exists, OuterRef
 from rest_framework import serializers
 
-from backend.constants import (EMAIL_MAX_LENGTH, FIRST_NAME_MAX_LENGTH,
-                               LAST_NAME_MAX_LENGTH, MAX_DIGITS_AMOUNT,
-                               MAX_PLACES_AMOUNT, REGULAR_USERNAME,
-                               USERNAME_MAX_LENGTH)
+from backend.constants import (EMAIL_MAX_LENGTH, ERROR_CURRENT_PASSWORD,
+                               ERROR_INGREDIENT_ARE_REPEATED,
+                               ERROR_NO_INGREDIENT, ERROR_NO_TAGS,
+                               ERROR_TAGS_ARE_REPEATED,
+                               ERROR_ZERO_INGREDIEN_AMOUNT,
+                               FIRST_NAME_MAX_LENGTH, LAST_NAME_MAX_LENGTH,
+                               MAX_DIGITS_AMOUNT, MAX_PLACES_AMOUNT,
+                               REGULAR_USERNAME, USERNAME_MAX_LENGTH)
 from backend.validators import (unique_email_validator,
                                 unique_username_validator)
-from foodgram.models import (Favorite, IngredientAmount, Ingredients, Recipes,
-                             ShoppingCart, Tag)
+from foodgram.models import IngredientAmount, Ingredients, Recipes, Tag
 from users.models import Account as User
-from users.models import Subscription
 
 
 class Base64ImageField(serializers.ImageField):
@@ -96,7 +97,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """Основной сериализатор для чтения данных о пользователе."""
 
-    avatar = avatar = serializers.ImageField(read_only=True)
+    avatar = serializers.ImageField(read_only=True)
     is_subscribed = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
@@ -122,6 +123,32 @@ class UserAvatarSerializer(serializers.ModelSerializer):
         fields = ('avatar',)
 
 
+class SetPasswordSerializer(serializers.Serializer):
+    """Сериализер для смены пароля."""
+
+    current_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+
+    def validate_current_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError(ERROR_CURRENT_PASSWORD)
+        return value
+
+    def validate_new_password(self, value):
+        user = self.context['request'].user
+        validate_password(value, user)
+        return value
+
+    def create(self, validated_data):
+        """Жертва архитектуре DRF - метод обязателен для абстрактного класса"""
+        pass
+
+    def update(self, instance, validated_data):
+        """Жертва архитектуре DRF - метод обязателен для абстрактного класса"""
+        pass
+
+
 class ShortRecipeSerializer(serializers.ModelSerializer):
     """Укороченный рецепт в подписках"""
 
@@ -135,7 +162,7 @@ class SubscriptionUserSerializer(serializers.ModelSerializer):
 
     recipes = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
-    is_subscribed = serializers.SerializerMethodField(read_only=True)
+    is_subscribed = serializers.BooleanField(read_only=True, default=False)
     recipes_count = serializers.IntegerField(
         source='recipes.count',
         read_only=True
@@ -156,13 +183,6 @@ class SubscriptionUserSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('is_subscribed', 'recipes_count')
 
-    def get_is_subscribed(self, obj):
-        """Проверяет, подписан ли текущий пользователь на автора obj."""
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return Subscription.objects.filter(user=user, author=obj).exists()
-
     def get_recipes(self, obj):
         request = self.context.get('request')
         limit = None
@@ -181,7 +201,6 @@ class SubscriptionUserSerializer(serializers.ModelSerializer):
             try:
                 limit = int(limit)
                 qs = qs[:limit]
-                # если limit некорректен — отдать все рецепты
             except (ValueError, TypeError):
                 pass
         return ShortRecipeSerializer(qs, many=True, context=self.context).data
@@ -273,18 +292,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             'is_in_shopping_cart',
         )
 
-    def get_is_favorited(self, obj):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return Favorite.objects.filter(user=user, recipe=obj).exists()
-
-    def get_is_in_shopping_cart(self, obj):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return ShoppingCart.objects.filter(user=user, recipe=obj).exists()
-
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     """Создание и редактирование рецепта."""
@@ -316,27 +323,27 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients = data.get('ingredients') or []
         if not tags:
             raise serializers.ValidationError(
-                {'tags': 'Нужно указать хотя бы один тег.'}
+                {'tags': ERROR_NO_TAGS}
             )
         if len(tags) != len(set(tags)):
             raise serializers.ValidationError(
-                {'tags': 'Теги не должны повторяться.'}
+                {'tags': ERROR_TAGS_ARE_REPEATED}
             )
         if not ingredients:
             raise serializers.ValidationError(
-                {'ingredients': 'Нужно добавить хотя бы один ингредиент.'}
+                {'ingredients': ERROR_NO_INGREDIENT}
             )
         seen = set()
         for item in ingredients:
             ingredient = item['ingredient']
             if ingredient in seen:
                 raise serializers.ValidationError(
-                    {'ingredients': 'Ингредиенты не должны повторяться.'}
+                    {'ingredients': ERROR_INGREDIENT_ARE_REPEATED}
                 )
             seen.add(ingredient)
             if float(item['amount']) <= 0:
                 raise serializers.ValidationError(
-                    {'ingredients': 'Количество должно быть больше нуля.'}
+                    {'ingredients': ERROR_ZERO_INGREDIEN_AMOUNT}
                 )
         return data
 

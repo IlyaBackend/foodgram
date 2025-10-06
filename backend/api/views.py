@@ -1,14 +1,20 @@
-from django.contrib.auth.password_validation import validate_password
 from django.db.models import Count, Exists, OuterRef, Prefetch, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from backend.constants import (ERROR_ALREADY_SIGNED, ERROR_AVATAR_PUT,
+                               ERROR_RECIPE_IN_FAVORITES,
+                               ERROR_RECIPE_IN_SHOPPING_CART,
+                               ERROR_RECIPE_NOT_IN_FAVORITES,
+                               ERROR_RECIPE_NOT_IN_SHOPPING_CART,
+                               ERROR_SUBSCRIE_TO_YOURSELF,
+                               ERROR_YOU_ARE_NOT_SUBSCRIBED,
+                               FILE_NAME_SHOPPING_CART)
 from foodgram.models import (Favorite, IngredientAmount, Ingredients, Recipes,
                              ShoppingCart, Tag)
 from users.models import Account as User
@@ -18,9 +24,9 @@ from .filters import RecipeTagFilter
 from .pagination import CustomPagination
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (IngredientSerializer, RecipeCreateUpdateSerializer,
-                          RecipeSerializer, ShortRecipeSerializer,
-                          SubscriptionUserSerializer, TagSerializer,
-                          UserAvatarSerializer, UserSerializer,
+                          RecipeSerializer, SetPasswordSerializer,
+                          ShortRecipeSerializer, SubscriptionUserSerializer,
+                          TagSerializer, UserAvatarSerializer, UserSerializer,
                           UserSignUpSerializer)
 
 
@@ -91,28 +97,12 @@ class UserViewSet(viewsets.ModelViewSet):
     def set_password(self, request):
         """Меняем пароль."""
         user = request.user
-        current_password = request.data.get('current_password')
-        new_password = request.data.get('new_password')
-        errors = {}
-        if not current_password:
-            errors['current_password'] = ['Обязательное поле.']
-        if not new_password:
-            errors['new_password'] = ['Обязательное поле.']
-        if errors:
-            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-        if not user.check_password(current_password):
-            return Response(
-                {'current_password': ['Неверный текущий пароль.']},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        try:
-            validate_password(new_password, user=user)
-        except ValidationError as e:
-            return Response(
-                {'new_password': e.messages},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        user.set_password(new_password)
+        serializer = SetPasswordSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -123,9 +113,9 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.method == 'PUT':
             if 'avatar' not in request.data:
                 return Response(
-                    {'avatar': ['Это поле обязательно']},
+                    {'avatar': [ERROR_AVATAR_PUT]},
                     status=status.HTTP_400_BAD_REQUEST
-                )            
+                )
             serializer = UserAvatarSerializer(
                 user, data=request.data, partial=True
             )
@@ -168,6 +158,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def _get_subscriptions_queryset(self, user, recipes_limit=None):
         """Строит queryset подписок с аннотациями и prefetch рецептов."""
+        if user.is_anonymous:
+            return False
         queryset = User.objects.filter(subscribers__user=user).annotate(
             is_subscribed=Exists(
                 Subscription.objects.filter(user=user, author=OuterRef('pk'))
@@ -187,12 +179,12 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             if user == author:
                 return Response(
-                    {'errors': 'Нельзя подписаться на самого себя'},
+                    {'errors': ERROR_SUBSCRIE_TO_YOURSELF},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             if Subscription.objects.filter(user=user, author=author).exists():
                 return Response(
-                    {'errors': 'Вы уже подписаны на этого пользователя'},
+                    {'errors': ERROR_ALREADY_SIGNED},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             Subscription.objects.create(user=user, author=author)
@@ -205,7 +197,7 @@ class UserViewSet(viewsets.ModelViewSet):
             author=author).delete()
         if not deleted[0]:
             return Response(
-                {'errors': 'Вы не подписаны на этого пользователя'},
+                {'errors': ERROR_YOU_ARE_NOT_SUBSCRIBED},
                 status=status.HTTP_400_BAD_REQUEST
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -355,16 +347,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post', 'delete'], url_path='favorite')
     def favorite(self, request, pk=None):
         errors = {
-            'already_exists': 'Рецепт уже в избранном',
-            'not_exists': 'Рецепта нет в избранном'
+            'already_exists': ERROR_RECIPE_IN_FAVORITES,
+            'not_exists': ERROR_RECIPE_NOT_IN_FAVORITES
         }
         return self._manage_recipe_list(request, pk, Favorite, errors)
 
     @action(detail=True, methods=['post', 'delete'], url_path='shopping_cart')
     def shopping_cart(self, request, pk=None):
         errors = {
-            'already_exists': 'Рецепт уже в списке покупок',
-            'not_exists': 'Рецепта нет в списке покупок'
+            'already_exists': ERROR_RECIPE_IN_SHOPPING_CART,
+            'not_exists': ERROR_RECIPE_NOT_IN_SHOPPING_CART
         }
         return self._manage_recipe_list(request, pk, ShoppingCart, errors)
 
@@ -389,5 +381,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         response = HttpResponse(shopping_list, content_type='text/plain')
         response[
-            'Content-Disposition'] = 'attachment; filename="Надо купить.txt"'
+            'Content-Disposition'
+        ] = f'attachment; filename={FILE_NAME_SHOPPING_CART}'
         return response
