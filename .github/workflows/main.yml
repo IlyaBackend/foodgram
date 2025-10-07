@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.10", "3.11", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     services:
       postgres:
         image: postgres:14
@@ -74,13 +74,15 @@ jobs:
     - name: Set up NodeJS
       uses: actions/setup-node@v3
       with:
-        node-version: '21.7.1'
+        node-version: 21.7.1
     - name: Install dependencies
-      working-directory: ./frontend
-      run: npm install
+      run: |
+        cd frontend/
+        npm install
     - name: Test frontend
-      working-directory: ./frontend
-      run: npm run test
+      run: |
+        cd frontend/
+        npm run test
 
   build_frontend_and_push_to_docker_hub:
     if: github.ref == 'refs/heads/main'
