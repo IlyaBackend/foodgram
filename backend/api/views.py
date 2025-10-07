@@ -313,7 +313,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_short_link(self, request, pk=None):
-        return Response({'short-link': f'/short/{pk}'})
+        """Возвращает абсолютную короткую ссылку на рецепт."""
+        obj = self.get_object()
+        short_code = getattr(obj, 'short_code', pk)
+        short_url = request.build_absolute_uri(f'/s/{short_code}')
+        return Response({'short-link': short_url})
 
     def _manage_recipe_list(self, request, pk, model, errors):
         """Общий метод для добавления/удаления избранного и списка покупок."""
