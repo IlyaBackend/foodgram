@@ -69,19 +69,18 @@ jobs:
   frontend_tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up nodeJS
+    - name: Check out the repo
+      uses: actions/checkout@v3
+    - name: Set up NodeJS
       uses: actions/setup-node@v3
       with:
-        node-version: 18
+        node-version: '21.7.1'
     - name: Install dependencies
-      run: |
-        cd frontend/
-        npm ci
+      working-directory: ./frontend
+      run: npm install
     - name: Test frontend
-      run: |
-        cd frontend/
-        npm run test
+      working-directory: ./frontend
+      run: npm run test
 
   build_frontend_and_push_to_docker_hub:
     if: github.ref == 'refs/heads/main'

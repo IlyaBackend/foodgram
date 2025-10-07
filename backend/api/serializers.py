@@ -4,6 +4,7 @@ import uuid
 from django.contrib.auth.password_validation import validate_password
 from django.core.files.base import ContentFile
 from rest_framework import serializers
+from users.models import Account
 
 from backend.constants import (EMAIL_MAX_LENGTH, ERROR_CURRENT_PASSWORD,
                                ERROR_INGREDIENT_ARE_REPEATED,
@@ -16,7 +17,6 @@ from backend.constants import (EMAIL_MAX_LENGTH, ERROR_CURRENT_PASSWORD,
 from backend.validators import (unique_email_validator,
                                 unique_username_validator)
 from foodgram.models import IngredientAmount, Ingredients, Recipes, Tag
-from users.models import Account
 
 
 class Base64ImageField(serializers.ImageField):

@@ -6,6 +6,7 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from users.models import Account, Subscription
 
 from backend.constants import (ERROR_ALREADY_SIGNED, ERROR_AVATAR_PUT,
                                ERROR_RECIPE_IN_FAVORITES,
@@ -17,7 +18,6 @@ from backend.constants import (ERROR_ALREADY_SIGNED, ERROR_AVATAR_PUT,
                                FILE_NAME_SHOPPING_CART)
 from foodgram.models import (Favorite, IngredientAmount, Ingredients, Recipes,
                              ShoppingCart, Tag)
-from users.models import Account, Subscription
 
 from .filters import RecipeTagFilter
 from .pagination import CustomPagination
