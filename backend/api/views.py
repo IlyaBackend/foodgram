@@ -213,7 +213,7 @@ class TagViewSet(
     serializer_class = TagSerializer
     filter_backends = [filters.SearchFilter]
     permission_classes = (AllowAny,)
-    search_fields = ['name', 'slug',]
+    search_fields = ('name', 'slug',)
     pagination_class = None
 
 
@@ -227,7 +227,7 @@ class IngredientViewSet(
     queryset = Ingredients.objects.all()
     serializer_class = IngredientSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['name',]
+    search_fields = ('name',)
     permission_classes = (AllowAny,)
     pagination_class = None
 
@@ -248,7 +248,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = RecipeTagFilter
     pagination_class = CustomPagination
-    search_fields = ['name', 'text',]
+    search_fields = ('name', 'text',)
 
     def get_queryset(self):
         """
@@ -316,7 +316,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Возвращает абсолютную короткую ссылку на рецепт."""
         obj = self.get_object()
         short_code = getattr(obj, 'short_code', pk)
-        short_url = request.build_absolute_uri(f'/s/{short_code}')
+        short_url = request.build_absolute_uri(f'/recipes/{short_code}')
         return Response({'short-link': short_url})
 
     def _manage_recipe_list(self, request, pk, model, errors):
