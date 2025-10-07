@@ -213,7 +213,7 @@ class TagViewSet(
     serializer_class = TagSerializer
     filter_backends = [filters.SearchFilter]
     permission_classes = (AllowAny,)
-    search_fields = ['name', 'slug']
+    search_fields = ['name', 'slug',]
     pagination_class = None
 
 
@@ -227,7 +227,7 @@ class IngredientViewSet(
     queryset = Ingredients.objects.all()
     serializer_class = IngredientSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
+    search_fields = ['name',]
     permission_classes = (AllowAny,)
     pagination_class = None
 
@@ -248,7 +248,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = RecipeTagFilter
     pagination_class = CustomPagination
-    search_fields = ['name', 'text']
+    search_fields = ['name', 'text',]
 
     def get_queryset(self):
         """
