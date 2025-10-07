@@ -16,7 +16,7 @@ from backend.constants import (EMAIL_MAX_LENGTH, ERROR_CURRENT_PASSWORD,
 from backend.validators import (unique_email_validator,
                                 unique_username_validator)
 from foodgram.models import IngredientAmount, Ingredients, Recipes, Tag
-from users.models import Account as User
+from users.models import Account
 
 
 class Base64ImageField(serializers.ImageField):
@@ -69,7 +69,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = User
+        model = Account
         fields = (
             'email',
             'id',
@@ -82,7 +82,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Создание пользователя с хэшированием пароля."""
-        user = User.objects.create(
+        user = Account.objects.create(
             email=validated_data['email'],
             username=validated_data['username'],
             first_name=validated_data['first_name'],
@@ -100,7 +100,7 @@ class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
-        model = User
+        model = Account
         fields = (
             'id',
             'email',
@@ -118,7 +118,7 @@ class UserAvatarSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField(required=True)
 
     class Meta:
-        model = User
+        model = Account
         fields = ('avatar',)
 
 
@@ -168,7 +168,7 @@ class SubscriptionUserSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = User
+        model = Account
         fields = (
             'email',
             'id',

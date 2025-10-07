@@ -17,8 +17,7 @@ from backend.constants import (ERROR_ALREADY_SIGNED, ERROR_AVATAR_PUT,
                                FILE_NAME_SHOPPING_CART)
 from foodgram.models import (Favorite, IngredientAmount, Ingredients, Recipes,
                              ShoppingCart, Tag)
-from users.models import Account as User
-from users.models import Subscription
+from users.models import Account, Subscription
 
 from .filters import RecipeTagFilter
 from .pagination import CustomPagination
@@ -33,7 +32,7 @@ from .serializers import (IngredientSerializer, RecipeCreateUpdateSerializer,
 class UserViewSet(viewsets.ModelViewSet):
     """Вьюсет для работы с пользователями и их аватарми."""
 
-    queryset = User.objects.all()
+    queryset = Account.objects.all()
     serializer_class = UserSerializer
     pagination_class = CustomPagination
 
@@ -51,7 +50,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Аннотируем поле is_subscribed."""
-        queryset = User.objects.all()
+        queryset = Account.objects.all()
         user = self.request.user
         if user.is_authenticated:
             queryset = queryset.annotate(
@@ -160,7 +159,7 @@ class UserViewSet(viewsets.ModelViewSet):
         """Строит queryset подписок с аннотациями и prefetch рецептов."""
         if user.is_anonymous:
             return False
-        queryset = User.objects.filter(subscribers__user=user).annotate(
+        queryset = Account.objects.filter(subscribers__user=user).annotate(
             is_subscribed=Exists(
                 Subscription.objects.filter(user=user, author=OuterRef('pk'))
             ),
