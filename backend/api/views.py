@@ -15,7 +15,7 @@ from backend.constants import (ERROR_ALREADY_SIGNED, ERROR_AVATAR_PUT,
                                ERROR_RECIPE_NOT_IN_SHOPPING_CART,
                                ERROR_SUBSCRIE_TO_YOURSELF,
                                ERROR_YOU_ARE_NOT_SUBSCRIBED,
-                               FILE_NAME_SHOPPING_CART)
+                               FILE_NAME_SHOPPING_CART, RESIPES_URL)
 from foodgram.models import (Favorite, IngredientAmount, Ingredients, Recipes,
                              ShoppingCart, Tag)
 
@@ -316,7 +316,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Возвращает абсолютную короткую ссылку на рецепт."""
         obj = self.get_object()
         short_code = getattr(obj, 'short_code', pk)
-        short_url = request.build_absolute_uri(f'/s/{short_code}')
+        short_url = request.build_absolute_uri(f'/{RESIPES_URL}/{short_code}')
         return Response({'short-link': short_url})
 
     def _manage_recipe_list(self, request, pk, model, errors):
