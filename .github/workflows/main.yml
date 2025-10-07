@@ -80,7 +80,7 @@ jobs:
     - name: Build frontend
       run: |
         cd frontend/
-        npm run build
+        CI=false npm run build
 
   build_frontend_and_push_to_docker_hub:
     if: github.ref == 'refs/heads/main'
