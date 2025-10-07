@@ -14,6 +14,9 @@ USE_SQLITE = os.environ.get('USE_SQLITE') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
