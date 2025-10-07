@@ -45,9 +45,3 @@ FILE_NAME_SHOPPING_CART = "Надо купить.txt"
 PAGE_SIZE_QUERY_PARAM = 'limit'
 PAGE_SIZE = 6
 MAX_PAGE_SIZE = 100
-
-# urls
-RESIPES_URL = 'recipes'
-TAGS_URL = 'tags'
-INGREDIENTS_URL = 'ingredients'
-USERS_URL = 'users'
