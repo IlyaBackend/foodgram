@@ -343,7 +343,7 @@ class RecipeShortLinkRedirectView(View):
     на полную страницу рецепта.
     """
 
-    def get(self, request, short_code):
+    def get(self, request, *args, **kwargs):
         """Получаем ссылку """
         short_code = self.kwargs.get('short_code')
         recipe = get_object_or_404(Recipes, short_code=short_code)
