@@ -347,5 +347,4 @@ class RecipeShortLinkRedirectView(View):
         """Получаем ссылку """
         short_code = self.kwargs.get('short_code')
         recipe = get_object_or_404(Recipes, short_code=short_code)
-        full_url = reverse('recipes-detail', kwargs={'pk': recipe.pk})
-        return redirect(full_url)
+        return redirect(f"/recipes/{recipe.pk}/")
