@@ -1,0 +1,11 @@
+Список покупок для Foodgram
+Дата составления: {{ date }}
+Пользователь: {{ user.username }}
+
+{% for idx, item in ingredients %}
+{{ idx }}. {{ item.ingredient__name|capfirst }} — {{ item.total_amount }} {{ item.ingredient__measurement_unit }}
+{% endfor %}
+
+{% for recipe in recipes %}
+- {{ recipe.name }} (автор: {{ recipe.author__username }})
+{% endfor %}

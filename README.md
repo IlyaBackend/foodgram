@@ -42,7 +42,7 @@ docker compose up -d --build
 ### 4. Выполнить миграции и собрать статику
 ```bash
 docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py collectstatic
+docker compose exec backend python manage.py collectstatic --noinput
 ```
 
 ### 5. Создать суперпользователя
@@ -51,11 +51,19 @@ docker compose exec backend python manage.py createsuperuser
 ```
 
 ### 6. Удобно самостоятельно загрузить ингредиенты в БД (Опционально)
+- ингредиениы
 ```bash
 docker compose exec backend python manage.py load_ingredients --file data/ingredients.json
 ```
+- тэги
+```bash
+docker compose exec backend python manage.py import_tags --file data/tags.json
+```
 ### После этого проект будет доступен по адресу:
-http://<ваш_серверный_IP>/
+http://[<ваш_серверный_IP>](http://localhost:8000/)/
+
+## Документация API
+[http://localhost/api/docs/](http://localhost/api/docs/)
 
 # Переменные окружения (.env)
 
@@ -77,7 +85,31 @@ http://<ваш_серверный_IP>/
 - DB_HOST=db
 - DB_PORT=5432
 
-Автор 
+---
 
-Проект выполнен в рамках учебного спринта Яндекс.Практикума.
-- Автор: IlyaBackend
+## 💻 Локальный запуск без Docker
+
+Если Docker не используется:
+
+```bash
+# Установка зависимостей
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Миграции и запуск
+python manage.py migrate
+python manage.py runserver
+```
+
+После этого проект будет доступен по адресу:  
+👉 [http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+---
+
+## Автор 
+
+Проект выполнен в рамках учебного спринта **Яндекс.Практикума**.  
+**Автор:** Илья
+
+[IlyaBackend](https://github.com/IlyaBackend)

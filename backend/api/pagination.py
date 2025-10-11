@@ -1,11 +1,11 @@
 from rest_framework.pagination import PageNumberPagination
 
-from backend.constants import MAX_PAGE_SIZE, PAGE_SIZE, PAGE_SIZE_QUERY_PARAM
+from .constants import MAX_PAGE_SIZE, PAGE_SIZE
 
 
-class CustomPagination(PageNumberPagination):
+class StandardPagination(PageNumberPagination):
     """Пагинация."""
 
-    page_size_query_param = PAGE_SIZE_QUERY_PARAM
+    page_size_query_param = 'limit'
     page_size = PAGE_SIZE
     max_page_size = MAX_PAGE_SIZE

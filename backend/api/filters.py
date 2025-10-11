@@ -1,7 +1,7 @@
 import django_filters
 from django_filters import rest_framework as filters
 
-from foodgram.models import Recipes, Tag
+from foodgram.models import Ingredients, Recipes, Tag
 
 
 class RecipeTagFilter(filters.FilterSet):
@@ -32,18 +32,34 @@ class RecipeTagFilter(filters.FilterSet):
             return False
         return str(val).lower() in ('1', 'true', 't', 'yes')
 
-    def filter_is_favorited(self, queryset, name, value):
+    def filter_is_favorited(self, favorited_queryset, name, value):
         user = self.request.user
         if self._param_is_true(value):
             if user.is_authenticated:
-                return queryset.filter(favorited_by__user=user).distinct()
-            return queryset.none()
-        return queryset
+                return favorited_queryset.filter(
+                    favorites__user=user
+                ).distinct()
+            return favorited_queryset.none()
+        return favorited_queryset
 
-    def filter_is_in_shopping_cart(self, queryset, name, value):
+    def filter_is_in_shopping_cart(self, shopping_cart_queryset, name, value):
         user = self.request.user
         if self._param_is_true(value):
             if user.is_authenticated:
-                return queryset.filter(in_carts__user=user).distinct()
-            return queryset.none()
-        return queryset
+                return shopping_cart_queryset.filter(
+                    shoppingcart__user=user
+                ).distinct()
+            return shopping_cart_queryset.none()
+        return shopping_cart_queryset
+
+
+class IngredientFilter(django_filters.FilterSet):
+    """Фильтр для ингредиентов по названию (начало слова)."""
+    name = django_filters.CharFilter(
+        field_name='name',
+        lookup_expr='istartswith',
+    )
+
+    class Meta:
+        model = Ingredients
+        fields = ['name']
