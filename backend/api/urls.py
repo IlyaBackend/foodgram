@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
-from .views import (IngredientViewSet, RecipeShortLinkRedirectView,
+from .views import (IngredientViewSet,
                     RecipeViewSet, TagViewSet, UserViewSet)
 
 router = SimpleRouter()
@@ -12,9 +12,5 @@ router.register('ingredients', IngredientViewSet, basename='ingredients')
 
 urlpatterns = [
     path('auth/', include('djoser.urls.authtoken')),
-    path(
-        's/<str:short_code>/',
-        RecipeShortLinkRedirectView.as_view(),
-        name='recipe-short-link'),
     path('', include(router.urls), name='routers'),
 ]
