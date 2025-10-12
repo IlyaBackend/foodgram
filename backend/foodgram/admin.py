@@ -209,8 +209,9 @@ class RecipesAdmin(admin.ModelAdmin):
         Возвращает список продуктов с количеством и единицами измерения.
         """
         return format_html('<br>'.join(
-            f'{ing.name} — {ing.ingredientamount.amount}{ing.measurement_unit}'
-            for ing in recipe.ingredients.all()
+            f'{ing.ingredient.name} — {ing.amount}'
+            f'{ing.ingredient.measurement_unit}'
+            for ing in recipe.ingredient_amounts.all()
         ))
 
     @admin.display(description='Теги')
