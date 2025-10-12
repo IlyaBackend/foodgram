@@ -1,39 +1,16 @@
 from django.core.validators import MinValueValidator
-from djoser.serializers import UserCreateSerializer, UserSerializer
+from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from foodgram.constants import FIRST_NAME_MAX_LENGTH, LAST_NAME_MAX_LENGTH
+from foodgram.constants import MIN_AMOUNT, MIN_COOKING_TIME
 from foodgram.models import (Account, IngredientAmount, Ingredients, Recipes,
                              Tag)
 from foodgram.validators import validate_image
 
 from .constants import (DEFAULT_LIMIT, ERROR_INGREDIENT_ARE_REPEATED,
                         ERROR_NO_INGREDIENT, ERROR_NO_TAGS,
-                        ERROR_TAGS_ARE_REPEATED, ERROR_ZERO_INGREDIEN_AMOUNT)
-
-
-class UserSignUpSerializer(UserCreateSerializer):
-    """Регистрация нового пользователя через Djoser."""
-    first_name = serializers.CharField(
-        required=True,
-        max_length=FIRST_NAME_MAX_LENGTH
-    )
-    last_name = serializers.CharField(
-        required=True,
-        max_length=LAST_NAME_MAX_LENGTH
-    )
-
-    class Meta(UserCreateSerializer.Meta):
-        model = Account
-        fields = (
-            'id',
-            'email',
-            'username',
-            'first_name',
-            'last_name',
-            'password',
-        )
+                        ERROR_TAGS_ARE_REPEATED)
 
 
 class UserReadSerializer(UserSerializer):
@@ -43,7 +20,7 @@ class UserReadSerializer(UserSerializer):
 
     class Meta:
         model = Account
-        fields = UserSerializer.Meta.fields + ('is_subscribed', 'avatar')
+        fields = (*UserSerializer.Meta.fields, 'is_subscribed', 'avatar')
         read_only_fields = fields
 
 
@@ -63,6 +40,7 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipes
         fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = fields
 
 
 class SubscriptionUserSerializer(UserReadSerializer):
@@ -76,28 +54,23 @@ class SubscriptionUserSerializer(UserReadSerializer):
 
     class Meta:
         model = Account
-        fields = UserReadSerializer.Meta.fields + ('recipes', 'recipes_count')
+        fields = (*UserReadSerializer.Meta.fields, 'recipes', 'recipes_count')
         read_only_fields = fields
 
     def get_recipes(self, user_obj):
-        request = self.context.get('request')
-        limit = self.context.get('recipes_limit', DEFAULT_LIMIT)
-        if request:
-            try:
-                limit = int(request.GET.get('recipes_limit', limit))
-                if limit <= 0:
-                    limit = DEFAULT_LIMIT
-            except (ValueError, TypeError):
-                limit = DEFAULT_LIMIT
         return ShortRecipeSerializer(
-            user_obj.recipes.all()[:limit],
+            user_obj.recipes.all()[:int(
+                self.context.get('request').GET.get(
+                    'recipes_limit', self.context.get(
+                        'recipes_limit', DEFAULT_LIMIT
+                    )))],
             many=True,
             context=self.context
         ).data
 
 
 class IngredientSerializer(serializers.ModelSerializer):
-    """Сериализер для ингредиентов."""
+    """Сериализер для продуктов."""
 
     class Meta:
         model = Ingredients
@@ -105,7 +78,7 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class ReadIngredientAmountSerializer(serializers.ModelSerializer):
-    """Отображение ингредиентов в рецепте (чтение)."""
+    """Отображение продуктов в рецепте (чтение)."""
 
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
@@ -126,7 +99,9 @@ class AddIngredientSerializer(serializers.ModelSerializer):
         queryset=Ingredients.objects.all(),
         source='ingredient'
     )
-    amount = serializers.IntegerField()
+    amount = serializers.IntegerField(
+        validators=[MinValueValidator(MIN_AMOUNT)]
+    )
 
     class Meta:
         model = IngredientAmount
@@ -192,7 +167,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     ingredients = AddIngredientSerializer(many=True, required=True)
     author = UserReadSerializer(read_only=True)
     cooking_time = serializers.IntegerField(
-        validators=[MinValueValidator(1)],
+        validators=[MinValueValidator(MIN_COOKING_TIME)],
         required=True
     )
 
@@ -236,21 +211,16 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
                 {'ingredients':
                  f'{ERROR_INGREDIENT_ARE_REPEATED}: {ingredient_duplicates}'}
             )
-        if any(float(item.get('amount', 0)) <= 0 for item in ingredients):
-            raise serializers.ValidationError({
-                'ingredients': ERROR_ZERO_INGREDIEN_AMOUNT
-            })
         return data
 
     def create_ingredients(self, recipe, ingredients):
         IngredientAmount.objects.bulk_create(
-            [
-                IngredientAmount(
-                    recipe=recipe,
-                    ingredient=item['ingredient'],
-                    amount=item['amount']
-                ) for item in ingredients
-            ])
+            IngredientAmount(
+                recipe=recipe,
+                ingredient=item['ingredient'],
+                amount=item['amount']
+            ) for item in ingredients
+        )
 
     def create(self, validated_data):
         tags = validated_data.pop('tags')
@@ -263,7 +233,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         tags = validated_data.pop('tags', None)
         ingredients = validated_data.pop('ingredients', None)
-        instance = super().update(instance, validated_data)
+        super().update(instance, validated_data)
         instance.tags.set(tags)
         instance.ingredient_amounts.all().delete()
         self.create_ingredients(instance, ingredients)

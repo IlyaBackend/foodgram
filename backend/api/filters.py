@@ -37,7 +37,7 @@ class RecipeTagFilter(filters.FilterSet):
         if self._param_is_true(value):
             if user.is_authenticated:
                 return favorited_queryset.filter(
-                    favorites__user=user
+                    favorite__user=user
                 ).distinct()
             return favorited_queryset.none()
         return favorited_queryset

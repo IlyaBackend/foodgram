@@ -20,42 +20,18 @@ class BaseImportCommand(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        if self.model is None:
-            raise CommandError('Не указана модель для импорта.')
         self.file_path = options['file']
         try:
             abs_path = os.path.join(os.getcwd(), self.file_path)
-            if not os.path.exists(abs_path):
-                raise CommandError(f'Файл не найден: {abs_path}')
             with open(abs_path, encoding='utf-8') as f:
-                data = json.load(f)
-            if not isinstance(data, list):
-                raise CommandError('Формат JSON должен быть списком объектов.')
-            if self.model.objects.exists():
-                total = self.model.objects.count()
-                self.stdout.write(self.style.WARNING(
-                    f'Таблица {self.model.__name__} уже содержит'
-                    f'{total} записей. Загрузка пропущена.'
-                ))
-                return
-            objects = []
-            for item in data:
-                if not isinstance(item, dict):
-                    continue
-                if not all(item.values()):
-                    continue
-                objects.append(self.model(**item))
-            if not objects:
-                raise CommandError('Нет корректных данных для импорта.')
+                objects = [self.model(**item) for item in json.load(f)]
             self.model.objects.bulk_create(objects, ignore_conflicts=True)
             self.stdout.write(self.style.SUCCESS(
-                f'Импорт завершён: добавлено {len(objects)} записей из файла'
-                f'{os.path.basename(self.file_path)}.'
+                f'Импорт завершён: добавлено {len(set(objects))} '
+                f'записей из файла {os.path.basename(self.file_path)}.'
             ))
-        except (
-            json.JSONDecodeError,
-            UnicodeDecodeError,
-            CommandError,
-            Exception
-        ) as e:
-            raise CommandError(f'Ошибка при выполнении импорта: {e}')
+        except Exception as e:
+            raise CommandError(
+                f'Ошибка при выполнении импорта: '
+                f'{self.file_path}: {e}'
+            ) from e
