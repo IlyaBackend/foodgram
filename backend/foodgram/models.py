@@ -244,7 +244,7 @@ class UserRecipeRelation(models.Model):
                     name=f'unique_{cls.__name__.lower()}'
                 )
             ]
-            cls._meta.default_related_name = f'{cls.__name__.lower()}s'
+            cls._meta.default_related_name = f'{cls.__name__.lower()}'
 
 
 class Favorite(UserRecipeRelation):

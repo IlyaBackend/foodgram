@@ -7,5 +7,5 @@
 {% endfor %}
 
 {% for recipe in recipes %}
-- {{ recipe.name }} (автор: {{ recipe.author__username }})
+- {{ recipe.name }} (автор: {{ recipe.author.sername }})
 {% endfor %}
