@@ -165,15 +165,10 @@ class CookingTimeFilter(admin.SimpleListFilter):
             self.LONG_LABEL: (medium_border, max_time),
         }
         return [
-            (key, f'{label} ({queryset.filter(
-                cooking_time__range=self.thresholds[key]
-            ).count()})')
-            for key, label in [
-                (self.SHORT_LABEL, f'Быстрые (< {int(short_border)} мин)'),
-                (self.MEDIUM_LABEL, f'Средние ({int(short_border)}–'
-                 f'{int(medium_border)} мин)'),
-                (self.LONG_LABEL, f'Долгие (> {int(medium_border)} мин)'),
-            ]
+            (self.SHORT_LABEL, f'Быстрые (< {int(short_border)} мин)'),
+            (self.MEDIUM_LABEL, f'Средние ({int(short_border)}–'
+             f'{int(medium_border)} мин)'),
+            (self.LONG_LABEL, f'Долгие (> {int(medium_border)} мин)'),
         ]
 
     def queryset(self, request, queryset):
