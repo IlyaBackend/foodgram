@@ -196,7 +196,7 @@ class RecipesAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Аннотируем queryset, чтобы считать избранное."""
         queryset = super().get_queryset(request)
-        return queryset.annotate(fav_count=Count('favorited_by'))
+        return queryset.annotate(fav_count=Count('favorite', distinct=True))
 
     @admin.display(description='В избранном', ordering='-fav_count')
     def favorites_count(self, recipe):
