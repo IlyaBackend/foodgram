@@ -90,6 +90,11 @@ http://[<ваш_серверный_IP>](http://localhost:8000/)/
 ## Локальный запуск без Docker
 
 Если Docker не используется:
+```bash
+git clone https://github.com/IlyaBackend/foodgram.git
+cd foodgram/backend
+```
+
 
 ```bash
 # Установка зависимостей
@@ -109,7 +114,8 @@ python manage.py runserver
 
 ## Автор 
 
-Проект выполнен в рамках учебного спринта **Яндекс.Практикума**.  
-**Автор:** Илья
+Проект выполнен в рамках учебного спринта **Яндекс.Практикума**.
+**Автор:** Кучеревский Илья Олегович
+Tg: [https://t.me/mbifckumm](https://t.me/mbifckumm)
 
 [IlyaBackend](https://github.com/IlyaBackend)
