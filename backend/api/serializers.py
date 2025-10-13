@@ -1,16 +1,19 @@
-from django.core.validators import MinValueValidator
+# isort: skip_file
 from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from foodgram.constants import MIN_AMOUNT, MIN_COOKING_TIME
-from foodgram.models import (Account, IngredientAmount, Ingredients, Recipes,
-                             Tag)
+from foodgram.models import (
+    Account, IngredientAmount, Ingredients, Recipes, Tag
+)
 from foodgram.validators import validate_image
 
-from .constants import (DEFAULT_LIMIT, ERROR_INGREDIENT_ARE_REPEATED,
-                        ERROR_NO_INGREDIENT, ERROR_NO_TAGS,
-                        ERROR_TAGS_ARE_REPEATED)
+from .constants import (
+    DEFAULT_LIMIT, ERROR_INGREDIENT_ARE_REPEATED,
+    ERROR_NO_INGREDIENT, ERROR_NO_TAGS,
+    ERROR_TAGS_ARE_REPEATED
+)
 
 
 class UserReadSerializer(UserSerializer):
@@ -99,9 +102,7 @@ class AddIngredientSerializer(serializers.ModelSerializer):
         queryset=Ingredients.objects.all(),
         source='ingredient'
     )
-    amount = serializers.IntegerField(
-        validators=[MinValueValidator(MIN_AMOUNT)]
-    )
+    amount = serializers.IntegerField(min_value=MIN_AMOUNT)
 
     class Meta:
         model = IngredientAmount
@@ -165,9 +166,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         required=True
     )
     ingredients = AddIngredientSerializer(many=True, required=True)
-    author = UserReadSerializer(read_only=True)
     cooking_time = serializers.IntegerField(
-        validators=[MinValueValidator(MIN_COOKING_TIME)],
+        min_value=MIN_COOKING_TIME,
         required=True
     )
 
@@ -175,7 +175,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         model = Recipes
         fields = (
             'id',
-            'author',
             'name',
             'text',
             'cooking_time',
@@ -193,24 +192,25 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients = data.get('ingredients') or []
         if not tags:
             raise serializers.ValidationError({'tags': ERROR_NO_TAGS})
-        tag_duplicates = self._get_duplicates(tags)
-        if tag_duplicates:
-            raise serializers.ValidationError(
-                {'tags': f'{ERROR_TAGS_ARE_REPEATED}: {tag_duplicates}'}
-            )
+        if (tag_duplicates := self._get_duplicates(tags)):
+            raise serializers.ValidationError({
+                'tags': '{}: {}'.format(
+                    ERROR_TAGS_ARE_REPEATED,
+                    tag_duplicates
+                )
+            })
         if not ingredients:
             raise serializers.ValidationError({
                 'ingredients':
                 ERROR_NO_INGREDIENT
             })
-        ingredient_duplicates = self._get_duplicates(
-            [item['ingredient'] for item in ingredients]
-        )
-        if ingredient_duplicates:
-            raise serializers.ValidationError(
-                {'ingredients':
-                 f'{ERROR_INGREDIENT_ARE_REPEATED}: {ingredient_duplicates}'}
-            )
+        if (ingredient_duplicates := self._get_duplicates(
+                [item['ingredient'] for item in ingredients])):
+            raise serializers.ValidationError({
+                'ingredients': '{}: {}'.format(
+                    ERROR_INGREDIENT_ARE_REPEATED, ingredient_duplicates
+                )
+            })
         return data
 
     def create_ingredients(self, recipe, ingredients):
@@ -233,11 +233,11 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         tags = validated_data.pop('tags', None)
         ingredients = validated_data.pop('ingredients', None)
-        super().update(instance, validated_data)
+        # super().update(instance, validated_data)
         instance.tags.set(tags)
         instance.ingredient_amounts.all().delete()
         self.create_ingredients(instance, ingredients)
-        return instance
+        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         return ReadRecipeSerializer(instance, context=self.context).data

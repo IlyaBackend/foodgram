@@ -7,7 +7,6 @@ ERROR_USERNAME_SYMBOLS = (
     'Имя пользователя может содержать'
     'буквы, цифры, и некоторые знаки'
 )
-
 MAX_LENGTH_INGREDIENT_NAME = 128
 MAX_LENGTH_MEASUREMENT_UNIT = 64
 MAX_LENGTH_TAG_NAME = 32

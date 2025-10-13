@@ -1,3 +1,4 @@
+# isort: skip_file
 from datetime import datetime
 
 from django.db.models import Count, Exists, OuterRef, Prefetch, Sum
@@ -13,17 +14,23 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from foodgram.models import (Account, Favorite, IngredientAmount, Ingredients,
-                             Recipes, ShoppingCart, Subscription, Tag)
+from foodgram.models import (
+    Account, Favorite, IngredientAmount, Ingredients,
+    Recipes, ShoppingCart, Subscription, Tag
+)
 
-from .constants import (ERROR_ALREADY_SIGNED, ERROR_AVATAR_PUT,
-                        ERROR_SUBSCRIE_TO_YOURSELF, FILE_NAME_SHOPPING_CART)
+from .constants import (
+    ERROR_ALREADY_SIGNED, ERROR_AVATAR_PUT,
+    ERROR_SUBSCRIE_TO_YOURSELF, FILE_NAME_SHOPPING_CART
+)
 from .filters import IngredientFilter, RecipeTagFilter
 from .pagination import StandardPagination
-from .serializers import (IngredientSerializer, ReadRecipeSerializer,
-                          RecipeCreateUpdateSerializer, ShortRecipeSerializer,
-                          SubscriptionUserSerializer, TagSerializer,
-                          UserAvatarSerializer, UserReadSerializer)
+from .serializers import (
+    IngredientSerializer, ReadRecipeSerializer,
+    RecipeCreateUpdateSerializer, ShortRecipeSerializer,
+    SubscriptionUserSerializer, TagSerializer,
+    UserAvatarSerializer, UserReadSerializer
+)
 
 
 def generate_shopping_list(user):
@@ -58,10 +65,6 @@ class UserViewSet(DjoserUserViewSet):
     queryset = Account.objects.all()
     serializer_class = UserReadSerializer
     pagination_class = StandardPagination
-
-    def perform_create(self, serializer):
-        """Создание пользователя (perform-версия create)."""
-        serializer.save()
 
     @action(
         detail=False, methods=['get'],
@@ -151,8 +154,9 @@ class UserViewSet(DjoserUserViewSet):
         )
         if not created:
             raise ValidationError({
-                'errors':
-                f'{ERROR_ALREADY_SIGNED} - {subscription.author.username}'
+                'errors': '{} - {}'.format(
+                    ERROR_ALREADY_SIGNED, subscription.author.username
+                )
             })
         return Response(
             SubscriptionUserSerializer(
@@ -256,14 +260,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe=recipe
         )
         if not created:
-            raise ValidationError(
-                {'errors':
-                 (
-                     f'Рецепт{recipe.name} уже добавлен в'
-                     f'{model._meta.verbose_name.lower()}'
-                 )
-                 }
-            )
+            raise ValidationError({'errors':
+                                   f'Рецепт{recipe.name} уже добавлен в'
+                                   f'{model._meta.verbose_name.lower()}'
+                                   })
         return Response(
             ShortRecipeSerializer(
                 recipe,

@@ -1,13 +1,16 @@
+# isort: skip_file
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from .constants import (EMAIL_MAX_LENGTH, FIRST_NAME_MAX_LENGTH,
-                        LAST_NAME_MAX_LENGTH, MAX_LENGTH_INGREDIENT_NAME,
-                        MAX_LENGTH_MEASUREMENT_UNIT, MAX_LENGTH_RECIPES_NAME,
-                        MAX_LENGTH_TAG_NAME, MAX_LENGTH_TAG_SLUG, MIN_AMOUNT,
-                        MIN_COOKING_TIME, STR_LENGTH, USERNAME_MAX_LENGTH)
+from .constants import (
+    EMAIL_MAX_LENGTH, FIRST_NAME_MAX_LENGTH,
+    LAST_NAME_MAX_LENGTH, MAX_LENGTH_INGREDIENT_NAME,
+    MAX_LENGTH_MEASUREMENT_UNIT, MAX_LENGTH_RECIPES_NAME,
+    MAX_LENGTH_TAG_NAME, MAX_LENGTH_TAG_SLUG, MIN_AMOUNT,
+    MIN_COOKING_TIME, STR_LENGTH, USERNAME_MAX_LENGTH
+)
 from .validators import USERNAME_REGEX_VALIDATOR
 
 
@@ -155,7 +158,6 @@ class Recipes(models.Model):
     tags = models.ManyToManyField(
         Tag,
         verbose_name='Метка',
-        related_name='recipes'
     )
     ingredients = models.ManyToManyField(
         Ingredients,
@@ -200,8 +202,8 @@ class IngredientAmount(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Продукт в рецепте'
-        verbose_name_plural = 'Продуктов в рецепте'
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
         default_related_name = 'ingredient_amounts'
         constraints = [
             models.UniqueConstraint(
@@ -233,18 +235,16 @@ class UserRecipeRelation(models.Model):
 
     class Meta:
         abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_%(app_label)s_%(class)s_relation'
+            )
+        ]
+        default_related_name = '%(class)s'
 
-    def __init_subclass__(cls, **kwargs):
-        """Автоматически создаёт уникальное ограничение и related_name."""
-        super().__init_subclass__(**kwargs)
-        if not cls._meta.abstract:
-            cls._meta.constraints = [
-                models.UniqueConstraint(
-                    fields=['user', 'recipe'],
-                    name=f'unique_{cls.__name__.lower()}'
-                )
-            ]
-            cls._meta.default_related_name = f'{cls.__name__.lower()}'
+    def __str__(self):
+        return f'{self.user} - {self.recipe}'
 
 
 class Favorite(UserRecipeRelation):
@@ -253,9 +253,6 @@ class Favorite(UserRecipeRelation):
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
-
-    def __str__(self):
-        return f'{self.user} - {self.recipe}'
 
 
 class ShoppingCart(UserRecipeRelation):

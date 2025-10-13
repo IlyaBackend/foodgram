@@ -8,6 +8,7 @@ class BaseImportCommand(BaseCommand):
     """Базовый класс для импорта данных из JSON."""
 
     model = None
+    default_file = 'default.json'
     file_help = ''
     file_path = ''
 
@@ -15,21 +16,22 @@ class BaseImportCommand(BaseCommand):
         parser.add_argument(
             '--file',
             type=str,
-            required=True,
             help=self.file_help,
         )
 
     def handle(self, *args, **options):
-        self.file_path = options['file']
+        self.file_path = options.get('file') or self.default_file
         try:
             abs_path = os.path.join(os.getcwd(), self.file_path)
             with open(abs_path, encoding='utf-8') as f:
-                objects = [self.model(**item) for item in json.load(f)]
-            self.model.objects.bulk_create(objects, ignore_conflicts=True)
-            self.stdout.write(self.style.SUCCESS(
-                f'Импорт завершён: добавлено {len(set(objects))} '
-                f'записей из файла {os.path.basename(self.file_path)}.'
-            ))
+                self.stdout.write(self.style.SUCCESS(
+                    f'Импорт завершён: добавлено {len(set(
+                        self.model.objects.bulk_create(
+                            (self.model(**item) for item in json.load(f)),
+                            ignore_conflicts=True
+                        )))} '
+                    f'записей из файла {os.path.basename(self.file_path)}.'
+                ))
         except Exception as e:
             raise CommandError(
                 f'Ошибка при выполнении импорта: '

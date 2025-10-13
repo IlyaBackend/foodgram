@@ -1,36 +1,58 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count, Max, Min
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from .models import (Account, Favorite, IngredientAmount, Ingredients, Recipes,
                      ShoppingCart, Subscription, Tag)
 
 
-def create_related_existence_filter(field_name, filter_title, param_name):
-    """
-    Фабрика для создания SimpleListFilter, который проверяет
-    наличие связанных объектов (например, есть ли у пользователя рецепты).
-    """
-    class RelatedExistenceFilter(admin.SimpleListFilter):
-        title = filter_title
-        parameter_name = param_name
+class RelatedExistenceFilter(admin.SimpleListFilter):
+    """Абстрактный базовый класс фильтрации по наличию связанных объектов."""
+    title = ''
+    parameter_name = ''
+    field_name = ''
+    LOOKUP_CHOICES = (('yes', 'Да'), ('no', 'Нет'),)
 
-        def lookups(self, request, model_admin):
-            return (
-                ('yes', 'Да'),
-                ('no', 'Нет'),
+    def lookups(self, request, model_admin):
+        return self.LOOKUP_CHOICES
+
+    def queryset(self, request, queryset):
+        """Фильтрует queryset на основе наличия связанных объектов."""
+        if not self.field_name:
+            raise NotImplementedError(
+                'Не хватает атребута field_name'
             )
+        lookup = f'{self.field_name}__isnull'
+        if self.value() == 'yes':
+            return queryset.filter(**{lookup: False}).distinct()
+        if self.value() == 'no':
+            return queryset.filter(**{lookup: True}).distinct()
+        return queryset
 
-        def queryset(self, request, queryset):
-            lookup = f'{field_name}__isnull'
-            if self.value() == 'yes':
-                return queryset.filter(**{lookup: False}).distinct()
-            if self.value() == 'no':
-                return queryset.filter(**{lookup: True}).distinct()
-            return queryset
 
-    return RelatedExistenceFilter
+class HasRecipesFilter(RelatedExistenceFilter):
+    title = 'Наличие рецептов'
+    parameter_name = 'has_recipes'
+    field_name = 'recipes'
+
+
+class HasSubscriptionsFilter(RelatedExistenceFilter):
+    title = 'Наличие подписок'
+    parameter_name = 'has_subscriptions'
+    field_name = 'subscriptions'
+
+
+class HasSubscribersFilter(RelatedExistenceFilter):
+    title = 'Наличие подписчиков'
+    parameter_name = 'has_subscribers'
+    field_name = 'authors'
+
+
+class InRecipeFilter(RelatedExistenceFilter):
+    title = 'Используется в рецептах'
+    parameter_name = 'in_recipe'
+    field_name = 'recipes'
 
 
 @admin.register(Account)
@@ -49,15 +71,9 @@ class AccountAdmin(UserAdmin):
     )
     search_fields = ('email', 'username', 'first_name', 'last_name')
     list_filter = (
-        create_related_existence_filter(
-            'recipes', 'Наличие рецептов', 'has_recipes'
-        ),
-        create_related_existence_filter(
-            'subscriptions', 'Наличие подписок', 'has_subscriptions'
-        ),
-        create_related_existence_filter(
-            'authors', 'Наличие подписчиков', 'has_subscribers'
-        ),
+        HasRecipesFilter,
+        HasSubscriptionsFilter,
+        HasSubscribersFilter,
     )
 
     @admin.display(description='ФИО')
@@ -65,25 +81,23 @@ class AccountAdmin(UserAdmin):
         return f'{user.first_name} {user.last_name}'
 
     @admin.display(description='Аватар',)
+    @mark_safe
     def avatar_display(self, user):
         if user.avatar:
-            return format_html(
-                '<img src="{}" width="50" height="50" />',
-                user.avatar.url
-            )
+            return f'<img src="{user.avatar.url}" width="50" height="50" />'
         return '-'
 
     @admin.display(description='Рецепты')
-    def recipes_count(self, instance):
-        return instance.recipes.count()
+    def recipes_count(self, user):
+        return user.recipes.count()
 
-    @admin.display(description='Подписоки')
-    def subscriptions_count(self, instance):
-        return instance.subscriptions.count()
+    @admin.display(description='Подписки')
+    def subscriptions_count(self, user):
+        return user.subscriptions.count()
 
     @admin.display(description='Подписчики')
-    def subscribers_count(self, instance):
-        return instance.authors.count()
+    def subscribers_count(self, user):
+        return user.authors.count()
 
 
 @admin.register(Subscription)
@@ -96,6 +110,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 class RelatedRecipesAdminMixin:
     """Добавляет отображение числа рецептов для связанных моделей."""
+
+    list_display_with_recipes_count = ('recipes_count',)
 
     @admin.display(description='Рецепты', ordering='recipes_count')
     def recipes_count(self, recipe):
@@ -113,15 +129,10 @@ class IngredientsAdmin(RelatedRecipesAdminMixin, admin.ModelAdmin):
     list_display = (
         'name',
         'measurement_unit',
-        'recipes_count',
+        *RelatedRecipesAdminMixin.list_display_with_recipes_count,
     )
     search_fields = ('name',)
-    list_filter = (
-        'measurement_unit',
-        create_related_existence_filter(
-            'recipes', 'Используется в рецептах', 'in_recipe'
-        ),
-    )
+    list_filter = ('measurement_unit', InRecipeFilter,)
 
 
 class IngredientAmountInline(admin.TabularInline):
@@ -136,7 +147,11 @@ class IngredientAmountInline(admin.TabularInline):
 class TagAdmin(RelatedRecipesAdminMixin, admin.ModelAdmin):
     """Настройка админки для модели тегов."""
 
-    list_display = ('name', 'slug', 'recipes_count')
+    list_display = (
+        'name',
+        'slug',
+        *RelatedRecipesAdminMixin.list_display_with_recipes_count,
+    )
     search_fields = ('name', 'slug')
 
 
@@ -150,33 +165,36 @@ class CookingTimeFilter(admin.SimpleListFilter):
     LONG_LABEL = 'long'
 
     def lookups(self, request, model_admin):
-        queryset = model_admin.model.objects.all()
-        min_time = queryset.aggregate(
-            Min('cooking_time')
-        )['cooking_time__min'] or 0
-        max_time = queryset.aggregate(
-            Max('cooking_time')
-        )['cooking_time__max'] or 0
-        short_border = min_time + (max_time - min_time) / 3
-        medium_border = min_time + 2 * (max_time - min_time) / 3
+        recipes = model_admin.model.objects.all()
+        if recipes.values('cooking_time').distinct().count() < 3:
+            return []
+        aggregates = recipes.aggregate(
+            min_time=Min('cooking_time'), max_time=Max('cooking_time')
+        )
+        min_time = aggregates.get('min_time')
+        max_time = aggregates.get('max_time')
+        time_range = max_time - min_time
+        if time_range <= 0:
+            return []
+        short_border = min_time + (time_range) // 3
+        medium_border = min_time + 2 * (time_range) // 3
         self.thresholds = {
             self.SHORT_LABEL: (min_time, short_border),
             self.MEDIUM_LABEL: (short_border, medium_border),
             self.LONG_LABEL: (medium_border, max_time),
         }
         return [
-            (self.SHORT_LABEL, f'Быстрые (< {int(short_border)} мин)'),
-            (self.MEDIUM_LABEL, f'Средние ({int(short_border)}–'
+            (self.SHORT_LABEL, f'Быстрые (< {short_border} мин)'),
+            (self.MEDIUM_LABEL, f'Средние ({short_border}–'
              f'{int(medium_border)} мин)'),
-            (self.LONG_LABEL, f'Долгие (> {int(medium_border)} мин)'),
+            (self.LONG_LABEL, f'Долгие (> {medium_border} мин)'),
         ]
 
-    def queryset(self, request, queryset):
+    def queryset(self, request, recipes):
         value = self.value()
-        if value in getattr(self, 'thresholds', {}):
-            start, end = self.thresholds[value]
-            return queryset.filter(cooking_time__range=(start, end))
-        return queryset
+        if value in self.thresholds:
+            return recipes.filter(cooking_time__range=self.thresholds[value])
+        return recipes
 
 
 @admin.register(Recipes)
@@ -190,7 +208,7 @@ class RecipesAdmin(admin.ModelAdmin):
     )
     readonly_fields = ('favorites_count',)
     search_fields = ('name', 'author__username')
-    list_filter = ('author', 'cooking_time', CookingTimeFilter)
+    list_filter = ('author', 'tags', CookingTimeFilter)
     inlines = (IngredientAmountInline,)
 
     def get_queryset(self, request):
@@ -204,28 +222,29 @@ class RecipesAdmin(admin.ModelAdmin):
         return recipe.fav_count
 
     @admin.display(description='Продукты')
+    @mark_safe
     def ingredients_list(self, recipe):
         """
         Возвращает список продуктов с количеством и единицами измерения.
         """
-        return format_html('<br>'.join(
+        return '<br>'.join(
             f'{ing.ingredient.name} — {ing.amount}'
             f'{ing.ingredient.measurement_unit}'
             for ing in recipe.ingredient_amounts.all()
-        ))
+        )
 
     @admin.display(description='Теги')
+    @mark_safe
     def tags_list(self, recipe):
         """Возвращает список тегов рецепта."""
-        return format_html('<br>'.join(tag.name for tag in recipe.tags.all()))
+        return '<br>'.join(tag.name for tag in recipe.tags.all())
 
     @admin.display(description='Изображение')
+    @mark_safe
     def recipe_image(self, recipe):
         """Показывает миниатюру изображения рецепта."""
         if recipe.image:
-            return format_html(
-                f'<img src="{recipe.image.url}" width="70" height="70" />'
-            )
+            return f'<img src="{recipe.image.url}" width="70" height="70" />'
         return '-'
 
 
