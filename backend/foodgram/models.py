@@ -51,6 +51,9 @@ class Account(AbstractUser):
         verbose_name_plural = 'Пользователи'
         ordering = ('username',)
 
+    def __str__(self):
+        return self.username
+
 
 class Subscription(models.Model):
     """Модель подписок, на кого я подписан и кто подписна на меня."""
@@ -141,7 +144,7 @@ class Recipes(models.Model):
             MIN_COOKING_TIME,
             f'Время приготовления не меньше {MIN_COOKING_TIME} минуты'
         )],
-        verbose_name='Время приготовления в минутах'
+        verbose_name='Время (мин)'
     )
     image = models.ImageField(
         upload_to='foodgram',
@@ -202,8 +205,8 @@ class IngredientAmount(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Продукт'
-        verbose_name_plural = 'Продукты'
+        verbose_name = 'Продукт рецепта'
+        verbose_name_plural = 'Продукты рецепта'
         default_related_name = 'ingredient_amounts'
         constraints = [
             models.UniqueConstraint(
@@ -241,7 +244,7 @@ class UserRecipeRelation(models.Model):
                 name='unique_%(app_label)s_%(class)s_relation'
             )
         ]
-        default_related_name = '%(class)s'
+        default_related_name = '%(class)ss'
 
     def __str__(self):
         return f'{self.user} - {self.recipe}'
@@ -250,7 +253,7 @@ class UserRecipeRelation(models.Model):
 class Favorite(UserRecipeRelation):
     """Избранные рецепты пользователей."""
 
-    class Meta:
+    class Meta(UserRecipeRelation.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
 
@@ -258,6 +261,6 @@ class Favorite(UserRecipeRelation):
 class ShoppingCart(UserRecipeRelation):
     """Список покупок пользователей."""
 
-    class Meta:
+    class Meta(UserRecipeRelation.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'

@@ -37,7 +37,7 @@ def generate_shopping_list(user):
     """Формирует текст списка покупок с рецептами."""
     ingredients = (
         IngredientAmount.objects.filter(
-            recipe__shoppingcart__user=user
+            recipe__shoppingcarts__user=user
         )
         .values(
             'ingredient__name',
@@ -47,7 +47,7 @@ def generate_shopping_list(user):
         .order_by('ingredient__name')
     )
     recipes = (
-        Recipes.objects.filter(shoppingcart__user=user)
+        Recipes.objects.filter(shoppingcarts__user=user)
         .order_by('name')
     )
     context = {
@@ -154,8 +154,8 @@ class UserViewSet(DjoserUserViewSet):
         )
         if not created:
             raise ValidationError({
-                'errors': '{} - {}'.format(
-                    ERROR_ALREADY_SIGNED, subscription.author.username
+                'errors': ERROR_ALREADY_SIGNED.format(
+                    subscription.author.username
                 )
             })
         return Response(
@@ -260,10 +260,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe=recipe
         )
         if not created:
-            raise ValidationError({'errors':
-                                   f'Рецепт{recipe.name} уже добавлен в'
-                                   f'{model._meta.verbose_name.lower()}'
-                                   })
+            raise ValidationError({
+                'errors':
+                f'Рецепт{recipe.name} уже добавлен в'
+                f'{model._meta.verbose_name.lower()}'
+            })
         return Response(
             ShortRecipeSerializer(
                 recipe,

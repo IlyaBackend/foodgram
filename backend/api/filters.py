@@ -37,7 +37,7 @@ class RecipeTagFilter(filters.FilterSet):
         if self._param_is_true(value):
             if user.is_authenticated:
                 return favorited_queryset.filter(
-                    favorite__user=user
+                    favorites__user=user
                 ).distinct()
             return favorited_queryset.none()
         return favorited_queryset
@@ -47,7 +47,7 @@ class RecipeTagFilter(filters.FilterSet):
         if self._param_is_true(value):
             if user.is_authenticated:
                 return shopping_cart_queryset.filter(
-                    shoppingcart__user=user
+                    shoppingcarts__user=user
                 ).distinct()
             return shopping_cart_queryset.none()
         return shopping_cart_queryset

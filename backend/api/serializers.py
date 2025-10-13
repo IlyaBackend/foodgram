@@ -194,10 +194,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'tags': ERROR_NO_TAGS})
         if (tag_duplicates := self._get_duplicates(tags)):
             raise serializers.ValidationError({
-                'tags': '{}: {}'.format(
-                    ERROR_TAGS_ARE_REPEATED,
-                    tag_duplicates
-                )
+                'tags': ERROR_TAGS_ARE_REPEATED.format(tag_duplicates)
             })
         if not ingredients:
             raise serializers.ValidationError({
@@ -207,8 +204,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         if (ingredient_duplicates := self._get_duplicates(
                 [item['ingredient'] for item in ingredients])):
             raise serializers.ValidationError({
-                'ingredients': '{}: {}'.format(
-                    ERROR_INGREDIENT_ARE_REPEATED, ingredient_duplicates
+                'ingredients': ERROR_INGREDIENT_ARE_REPEATED.format(
+                    ingredient_duplicates
                 )
             })
         return data
@@ -233,7 +230,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         tags = validated_data.pop('tags', None)
         ingredients = validated_data.pop('ingredients', None)
-        # super().update(instance, validated_data)
         instance.tags.set(tags)
         instance.ingredient_amounts.all().delete()
         self.create_ingredients(instance, ingredients)

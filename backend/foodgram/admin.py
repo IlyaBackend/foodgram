@@ -1,10 +1,16 @@
+# isort: skip_file
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 from django.db.models import Count, Max, Min
 from django.utils.safestring import mark_safe
 
-from .models import (Account, Favorite, IngredientAmount, Ingredients, Recipes,
-                     ShoppingCart, Subscription, Tag)
+from .models import (
+    Account, Favorite, IngredientAmount,
+    Ingredients, Recipes, ShoppingCart, Subscription, Tag
+)
+
+admin.site.unregister(Group)
 
 
 class RelatedExistenceFilter(admin.SimpleListFilter):
@@ -19,10 +25,7 @@ class RelatedExistenceFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         """Фильтрует queryset на основе наличия связанных объектов."""
-        if not self.field_name:
-            raise NotImplementedError(
-                'Не хватает атребута field_name'
-            )
+
         lookup = f'{self.field_name}__isnull'
         if self.value() == 'yes':
             return queryset.filter(**{lookup: False}).distinct()
@@ -32,19 +35,19 @@ class RelatedExistenceFilter(admin.SimpleListFilter):
 
 
 class HasRecipesFilter(RelatedExistenceFilter):
-    title = 'Наличие рецептов'
+    title = 'Есть рецепты'
     parameter_name = 'has_recipes'
     field_name = 'recipes'
 
 
 class HasSubscriptionsFilter(RelatedExistenceFilter):
-    title = 'Наличие подписок'
+    title = 'Есть подписки'
     parameter_name = 'has_subscriptions'
     field_name = 'subscriptions'
 
 
 class HasSubscribersFilter(RelatedExistenceFilter):
-    title = 'Наличие подписчиков'
+    title = 'Есть подписчики'
     parameter_name = 'has_subscribers'
     field_name = 'authors'
 
@@ -59,6 +62,22 @@ class InRecipeFilter(RelatedExistenceFilter):
 class AccountAdmin(UserAdmin):
     """Кастомизация админ-панели для модели пользователей."""
 
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': (
+            'first_name', 'last_name', 'email', 'avatar'
+        )}),
+        ('Permissions', {'fields': (
+            'is_active',
+            'is_staff',
+            'is_superuser',
+            'groups',
+            'user_permissions'
+        )}),
+        ('Important dates', {'fields': (
+            'last_login', 'date_joined'
+        )}),
+    )
     list_display = (
         'id',
         'username',
@@ -104,8 +123,16 @@ class AccountAdmin(UserAdmin):
 class SubscriptionAdmin(admin.ModelAdmin):
     """Админ-панель для модели подписок."""
 
-    list_display = ('user', 'author')
+    list_display = ('user_username', 'author_username')
     search_fields = ('user__username', 'author__username')
+
+    @admin.display(description='author')
+    def author_username(self, author):
+        return author.author.username
+
+    @admin.display(description='user')
+    def user_username(self, user):
+        return user.user.username
 
 
 class RelatedRecipesAdminMixin:
@@ -142,6 +169,14 @@ class IngredientAmountInline(admin.TabularInline):
     extra = 1
     min_num = 1
 
+    fields = ('ingredient', 'amount', 'get_measurement_unit')
+    readonly_fields = ('get_measurement_unit',)
+
+    @admin.display(description='Ед. изм.')
+    def get_measurement_unit(self, recipe):
+        """Показывает единицу измерения для выбранного ингредиента."""
+        return recipe.ingredient.measurement_unit
+
 
 @admin.register(Tag)
 class TagAdmin(RelatedRecipesAdminMixin, admin.ModelAdmin):
@@ -174,8 +209,6 @@ class CookingTimeFilter(admin.SimpleListFilter):
         min_time = aggregates.get('min_time')
         max_time = aggregates.get('max_time')
         time_range = max_time - min_time
-        if time_range <= 0:
-            return []
         short_border = min_time + (time_range) // 3
         medium_border = min_time + 2 * (time_range) // 3
         self.thresholds = {
@@ -202,7 +235,7 @@ class RecipesAdmin(admin.ModelAdmin):
     """Настройка админки для модели рецептов."""
 
     list_display = (
-        'id', 'name', 'author', 'cooking_time',
+        'id', 'name', 'author_username', 'cooking_time',
         'favorites_count', 'ingredients_list',
         'tags_list', 'recipe_image'
     )
@@ -214,12 +247,16 @@ class RecipesAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Аннотируем queryset, чтобы считать избранное."""
         queryset = super().get_queryset(request)
-        return queryset.annotate(fav_count=Count('favorite', distinct=True))
+        return queryset.annotate(fav_count=Count('favorites', distinct=True))
 
     @admin.display(description='В избранном', ordering='-fav_count')
     def favorites_count(self, recipe):
         """Показывает, сколько раз рецепт был добавлен в избранное."""
         return recipe.fav_count
+
+    @admin.display(description='Автор')
+    def author_username(self, recipe):
+        return recipe.author.username
 
     @admin.display(description='Продукты')
     @mark_safe
@@ -228,7 +265,7 @@ class RecipesAdmin(admin.ModelAdmin):
         Возвращает список продуктов с количеством и единицами измерения.
         """
         return '<br>'.join(
-            f'{ing.ingredient.name} — {ing.amount}'
+            f'{ing.ingredient.name} — {ing.amount} '
             f'{ing.ingredient.measurement_unit}'
             for ing in recipe.ingredient_amounts.all()
         )
@@ -247,17 +284,28 @@ class RecipesAdmin(admin.ModelAdmin):
             return f'<img src="{recipe.image.url}" width="70" height="70" />'
         return '-'
 
+    @admin.display(description='Текущее изображение')
+    @mark_safe
+    def image_preview(self, recipe):
+        if recipe.image:
+            return f'<img src="{recipe.image.url}" width="200" />'
+        return 'Изображение не загружено'
+
+    @admin.display(description='Время (мин)', ordering='cooking_time')
+    def display_cooking_time(self, recipe):
+        return recipe.cooking_time
+
 
 @admin.register(Favorite, ShoppingCart)
 class UserRecipeRelationAdmin(admin.ModelAdmin):
     """Админ-панель для модели избранных рецептов и списка покупок."""
 
-    list_display = ('id', 'user', 'recipe', 'recipe_author', 'recipe_name')
+    list_display = ('id', 'user', 'recipe_author', 'recipe_name')
     search_fields = ('user__username', 'recipe__name')
 
     @admin.display(description='Автор рецепта')
     def recipe_author(self, instance):
-        return instance.recipe.author
+        return instance.recipe.author.username
 
     @admin.display(description='Название рецепта')
     def recipe_name(self, instance):
