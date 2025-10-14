@@ -21,7 +21,8 @@ from foodgram.models import (
 
 from .constants import (
     ERROR_ALREADY_SIGNED, ERROR_AVATAR_PUT,
-    ERROR_SUBSCRIE_TO_YOURSELF, FILE_NAME_SHOPPING_CART
+    ERROR_SUBSCRIE_TO_YOURSELF, FILE_NAME_SHOPPING_CART,
+    MONTHS
 )
 from .filters import IngredientFilter, RecipeTagFilter
 from .pagination import StandardPagination
@@ -35,6 +36,8 @@ from .serializers import (
 
 def generate_shopping_list(user):
     """Формирует текст списка покупок с рецептами."""
+
+    now = datetime.now()
     ingredients = (
         IngredientAmount.objects.filter(
             recipe__shoppingcarts__user=user
@@ -52,7 +55,7 @@ def generate_shopping_list(user):
     )
     context = {
         'user': user,
-        'date': datetime.now().strftime('%d.%m.%Y'),
+        'date': f'{now.day} {MONTHS[now.month]} {now.year}',
         'ingredients': enumerate(ingredients, start=1),
         'recipes': recipes,
     }
@@ -115,6 +118,21 @@ class UserViewSet(DjoserUserViewSet):
             'request': request,
         })
         return self.get_paginated_response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Переопределяем retrieve, чтобы корректно отображалось
+        состоянии подписки на страницах пользователей
+        """
+        user = request.user
+        author = self.get_object()
+        if user.is_authenticated:
+            author.is_subscribed = Subscription.objects.filter(
+                user=user,
+                author=author
+            ).exists()
+        serializer = self.get_serializer(author)
+        return Response(serializer.data)
 
     def _get_subscriptions_queryset(self, user, recipes_limit=None):
         """Строит queryset подписок с аннотациями и prefetch рецептов."""

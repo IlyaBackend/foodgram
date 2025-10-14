@@ -172,7 +172,7 @@ class Recipes(models.Model):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ('-created_at',)
+        ordering = ('created_at',)
         default_related_name = 'recipes'
 
     def __str__(self):
@@ -205,8 +205,8 @@ class IngredientAmount(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Продукт рецепта'
-        verbose_name_plural = 'Продукты рецепта'
+        verbose_name = 'Количество продукта в рецепте'
+        verbose_name_plural = 'Количества продуктов в рецептах'
         default_related_name = 'ingredient_amounts'
         constraints = [
             models.UniqueConstraint(

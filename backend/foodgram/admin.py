@@ -62,10 +62,11 @@ class InRecipeFilter(RelatedExistenceFilter):
 class AccountAdmin(UserAdmin):
     """Кастомизация админ-панели для модели пользователей."""
 
+    readonly_fields = ('avatar_preview',)
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal info', {'fields': (
-            'first_name', 'last_name', 'email', 'avatar'
+            'first_name', 'last_name', 'email', 'avatar', 'avatar_preview'
         )}),
         ('Permissions', {'fields': (
             'is_active',
@@ -105,6 +106,13 @@ class AccountAdmin(UserAdmin):
         if user.avatar:
             return f'<img src="{user.avatar.url}" width="50" height="50" />'
         return '-'
+
+    @admin.display(description='Текущий аватар')
+    @mark_safe
+    def avatar_preview(self, user):
+        if user.avatar:
+            return f'<img src="{user.avatar.url}" width="150" />'
+        return 'Аватар не загружен'
 
     @admin.display(description='Рецепты')
     def recipes_count(self, user):

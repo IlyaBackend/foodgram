@@ -53,7 +53,7 @@ docker compose exec backend python manage.py createsuperuser
 ### 6. Удобно самостоятельно загрузить ингредиенты в БД (Опционально)
 - ингредиениы
 ```bash
-docker compose exec backend python manage.py load_ingredients --file data/ingredients.json
+docker compose exec backend python manage.py import_ingredients --file data/ingredients.json
 ```
 - тэги
 ```bash
