@@ -50,8 +50,8 @@ def generate_shopping_list(user):
         .order_by('ingredient__name')
     )
     recipes = (
-        Recipes.objects.filter(shoppingcarts__user=user)
-        .order_by('name')
+        Recipes.objects.filter(
+            shoppingcarts__user=user).order_by('name')
     )
     context = {
         'user': user,
