@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from foodgram.constants import MIN_AMOUNT, MIN_COOKING_TIME
 from foodgram.models import (
-    Account, IngredientAmount, Ingredients, Recipes, Tag
+    Account, IngredientAmount, Ingredients, Recipes, Subscription, Tag
 )
 from foodgram.validators import validate_image
 
@@ -19,12 +19,22 @@ from .constants import (
 class UserReadSerializer(UserSerializer):
     """Основной сериализатор для чтения данных о пользователе."""
 
-    is_subscribed = serializers.BooleanField(read_only=True, default=False)
+    is_subscribed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Account
         fields = (*UserSerializer.Meta.fields, 'is_subscribed', 'avatar')
         read_only_fields = fields
+
+    def get_is_subscribed(self, author):
+        """
+        Метод отвечающий за правильное отображение подписок
+        на странице фронтенда
+        """
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return False
+        return Subscription.objects.filter(user=user, author=author).exists()
 
 
 class UserAvatarSerializer(serializers.ModelSerializer):

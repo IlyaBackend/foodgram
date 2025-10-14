@@ -25,11 +25,11 @@ class BaseImportCommand(BaseCommand):
             abs_path = Path.cwd() / self.file_path
             with abs_path.open(encoding='utf-8') as f:
                 created = self.model.objects.bulk_create((
-                    self.model(**item) for item in json.load(f)),
-                    ignore_conflicts=True
+                    self.model(**item) for item in json.load(f)
+                ), ignore_conflicts=True
                 )
                 self.stdout.write(self.style.SUCCESS(
-                    f'Импорт завершён добавлено {len(created)} '
+                    f'Импорт завершён добавлены все {len(created)} '
                     f'записей из файла {abs_path.name}'))
         except Exception as e:
             raise CommandError(

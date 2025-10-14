@@ -119,21 +119,6 @@ class UserViewSet(DjoserUserViewSet):
         })
         return self.get_paginated_response(serializer.data)
 
-    def retrieve(self, request, *args, **kwargs):
-        """
-        Переопределяем retrieve, чтобы корректно отображалось
-        состоянии подписки на страницах пользователей
-        """
-        user = request.user
-        author = self.get_object()
-        if user.is_authenticated:
-            author.is_subscribed = Subscription.objects.filter(
-                user=user,
-                author=author
-            ).exists()
-        serializer = self.get_serializer(author)
-        return Response(serializer.data)
-
     def _get_subscriptions_queryset(self, user, recipes_limit=None):
         """Строит queryset подписок с аннотациями и prefetch рецептов."""
         queryset = Account.objects.filter(authors__user=user).annotate(
