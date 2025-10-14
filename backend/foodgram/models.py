@@ -172,7 +172,7 @@ class Recipes(models.Model):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ('created_at',)
+        ordering = ('-created_at',)
         default_related_name = 'recipes'
 
     def __str__(self):
