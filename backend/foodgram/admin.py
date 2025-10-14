@@ -211,14 +211,15 @@ class CookingTimeFilter(admin.SimpleListFilter):
         recipes = model_admin.model.objects.all()
         if recipes.values('cooking_time').distinct().count() < 3:
             return []
-        aggregates = recipes.aggregate(
-            min_time=Min('cooking_time'), max_time=Max('cooking_time')
-        )
-        min_time = aggregates.get('min_time')
-        max_time = aggregates.get('max_time')
-        time_range = max_time - min_time
-        short_border = min_time + (time_range) // 3
-        medium_border = min_time + 2 * (time_range) // 3
+        sorted_times = sorted(list(recipes.values_list(
+            'cooking_time',
+            flat=True
+        )))
+        n = len(sorted_times)
+        short_border = sorted_times[n // 3]
+        medium_border = sorted_times[2 * n // 3]
+        min_time = sorted_times[0]
+        max_time = sorted_times[-1]
         self.thresholds = {
             self.SHORT_LABEL: (min_time, short_border),
             self.MEDIUM_LABEL: (short_border, medium_border),
