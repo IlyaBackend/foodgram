@@ -62,7 +62,6 @@ class InRecipeFilter(RelatedExistenceFilter):
 class AccountAdmin(UserAdmin):
     """Кастомизация админ-панели для модели пользователей."""
 
-    readonly_fields = ('avatar_preview',)
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal info', {'fields': (
@@ -79,6 +78,7 @@ class AccountAdmin(UserAdmin):
             'last_login', 'date_joined'
         )}),
     )
+    readonly_fields = ('avatar_preview',)
     list_display = (
         'id',
         'username',
@@ -241,13 +241,25 @@ class CookingTimeFilter(admin.SimpleListFilter):
 @admin.register(Recipes)
 class RecipesAdmin(admin.ModelAdmin):
     """Настройка админки для модели рецептов."""
-
+    fieldsets = (
+        (None, {
+            'fields': (
+                'name',
+                'text',
+                'cooking_time',
+                'image',
+                'image_preview',
+                'author',
+                'tags',
+                'favorites_count',
+            )}),
+    )
+    readonly_fields = ('favorites_count', 'image_preview')
     list_display = (
         'id', 'name', 'author_username', 'cooking_time',
         'favorites_count', 'ingredients_list',
         'tags_list', 'recipe_image'
     )
-    readonly_fields = ('favorites_count',)
     search_fields = ('name', 'author__username')
     list_filter = ('author', 'tags', CookingTimeFilter)
     inlines = (IngredientAmountInline,)
@@ -296,7 +308,7 @@ class RecipesAdmin(admin.ModelAdmin):
     @mark_safe
     def image_preview(self, recipe):
         if recipe.image:
-            return f'<img src="{recipe.image.url}" width="200" />'
+            return f'<img src="{recipe.image.url}" width="150" />'
         return 'Изображение не загружено'
 
     @admin.display(description='Время (мин)', ordering='cooking_time')

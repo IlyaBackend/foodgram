@@ -206,7 +206,7 @@ class IngredientAmount(models.Model):
 
     class Meta:
         verbose_name = 'Количество продукта в рецепте'
-        verbose_name_plural = 'Количества продуктов в рецептах'
+        verbose_name_plural = 'Количество продуктов в рецептах'
         default_related_name = 'ingredient_amounts'
         constraints = [
             models.UniqueConstraint(
