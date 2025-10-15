@@ -32,9 +32,10 @@ class UserReadSerializer(UserSerializer):
         на странице фронтенда
         """
         user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return Subscription.objects.filter(user=user, author=author).exists()
+        return False if user.is_anonymous else Subscription.objects.filter(
+            user=user,
+            author=author
+        ).exists()
 
 
 class UserAvatarSerializer(serializers.ModelSerializer):

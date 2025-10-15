@@ -29,7 +29,7 @@ class BaseImportCommand(BaseCommand):
                 ), ignore_conflicts=True
                 )
                 self.stdout.write(self.style.SUCCESS(
-                    f'Импорт завершён добавлены все {len(created)} '
+                    f'Импорт завершён добавлены {len(created)} '
                     f'записей из файла {abs_path.name}'))
         except Exception as e:
             raise CommandError(
