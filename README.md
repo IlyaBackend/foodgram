@@ -112,12 +112,15 @@ python manage.py runserver
 
 ---
 
-## Автор 
-
 Проект выполнен в рамках учебного спринта **Яндекс.Практикума**.
 
-**Автор:** Кучеревский Илья Олегович
+---
+
+## **Автор:**
+Кучеревский Илья Олегович
 
 Tg: [mbifckumm](https://t.me/mbifckumm)
 
 [IlyaBackend](https://github.com/IlyaBackend)
+
+--- 
